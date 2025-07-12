@@ -4,6 +4,8 @@ use axum::http::{HeaderValue, Request, StatusCode};
 use axum::middleware::{from_fn, Next};
 use axum::response::{IntoResponse, Response};
 use clap::Parser;
+use rdkafka::producer::FutureProducer;
+use rdkafka::ClientConfig;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, LazyLock};
 #[cfg(debug_assertions)]
@@ -63,10 +65,13 @@ async fn main() -> Result<(), ()> {
             .init();
     }
 
-    let sender = Arc::new(DefaultMtbFileSender::new(
-        &CONFIG.topic,
-        &CONFIG.bootstrap_server,
-    )?);
+    let producer = ClientConfig::new()
+        .set("bootstrap.servers", &CONFIG.bootstrap_server)
+        .set("message.timeout.ms", "5000")
+        .create::<FutureProducer>()
+        .map_err(|_| ())?;
+
+    let sender = Arc::new(DefaultMtbFileSender::new(&CONFIG.topic, producer));
 
     let routes = routes(sender).layer(from_fn(check_basic_auth));
 

@@ -2,7 +2,6 @@ use async_trait::async_trait;
 use mv64e_mtb_dto::Mtb;
 use rdkafka::message::{Header, OwnedHeaders};
 use rdkafka::producer::{FutureProducer, FutureRecord};
-use rdkafka::ClientConfig;
 use std::sync::Arc;
 use std::time::Duration;
 use uuid::Uuid;
@@ -28,17 +27,11 @@ pub struct DefaultMtbFileSender {
 }
 
 impl DefaultMtbFileSender {
-    pub fn new(topic: &str, bootstrap_server: &str) -> Result<Self, ()> {
-        let producer = ClientConfig::new()
-            .set("bootstrap.servers", bootstrap_server)
-            .set("message.timeout.ms", "5000")
-            .create::<FutureProducer>()
-            .map_err(|_| ())?;
-
-        Ok(Self {
+    pub fn new(topic: &str, producer: FutureProducer) -> Self {
+        Self {
             topic: topic.to_string(),
             producer,
-        })
+        }
     }
 }
 
@@ -51,10 +44,15 @@ impl MtbFileSender for DefaultMtbFileSender {
             patient_id: mtb.patient.id.to_string(),
         };
 
-        let record_headers = OwnedHeaders::default().insert(Header {
-            key: "requestId",
-            value: Some(&request_id.to_string()),
-        });
+        let record_headers = OwnedHeaders::default()
+            .insert(Header {
+                key: "requestId",
+                value: Some(&request_id.to_string()),
+            })
+            .insert(Header {
+                key: "contentType",
+                value: Some("application/vnd.dnpm.v2.mtb+json"),
+            });
 
         let record_key = serde_json::to_string(&record_key).map_err(|_| ())?;
 
