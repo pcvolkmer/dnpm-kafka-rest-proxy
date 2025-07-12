@@ -5,7 +5,7 @@ DNPM Datenmodell 2.1 REST Proxy für Kafka
 ### Einordnung innerhalb einer DNPM-ETL-Strecke
 
 Diese Anwendung erlaubt das Weiterleiten von REST Anfragen mit einem Request-Body und Inhalt im DNPM-Datenmodell 2.1
-sowie `Content-Type` von `application/json` an einen Apache Kafka Cluster.
+sowie `Content-Type` von `application/json` bzw `application/vnd.dnpm.v2.mtb+json` an einen Apache Kafka Cluster.
 
 Verwendung im Zusammenspiel mit https://github.com/pcvolkmer/etl-processor
 
@@ -82,6 +82,8 @@ curl -u token:very-secret \
   http://localhost:3000/mtb/etl/patient-record
 ```
 
+Als Content-Type kann auch `application/vnd.dnpm.v2.mtb+json` verwendet werden.
+
 Antwort:
 
 ```
@@ -123,7 +125,7 @@ Resultierender Kafka-Record:
 * **Key**: `{ "pid" : "P1" }`
 * **Headers**:
     * `requestId`: `8473fa67-8b18-4e8f-aa89-874f74fcc672`
-* **Value**: JSON-String mit Patienten-ID `P1` und ohne weitere Angaben: * **Value**: `{ "patient": { "id": "P1", .... } }`
+* **Value**: JSON-String mit Patienten-ID `P1` und ohne weitere Angaben: `{ "patient": { "id": "P1", .... } }`
 
 Es werden keine weiteren patientenbezogenen Daten übermittelt.
 
