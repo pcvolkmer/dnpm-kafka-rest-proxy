@@ -1,6 +1,8 @@
+use crate::check_content_type_header;
 use crate::sender::DynMtbFileSender;
 use crate::AppResponse::{Accepted, InternalServerError};
 use axum::extract::Path;
+use axum::middleware::from_fn;
 use axum::response::{IntoResponse, Response};
 use axum::routing::{delete, post};
 use axum::{Extension, Json, Router};
@@ -35,6 +37,7 @@ pub fn routes(sender: DynMtbFileSender) -> Router {
             delete(handle_delete),
         )
         .layer(Extension(sender))
+        .layer(from_fn(check_content_type_header))
 }
 
 #[cfg(test)]
@@ -103,5 +106,61 @@ mod tests {
             .unwrap();
 
         assert_eq!(response.status(), StatusCode::ACCEPTED);
+    }
+
+    #[tokio::test]
+    #[allow(clippy::expect_used)]
+    async fn should_handle_post_request_with_custom_v2_media_type() {
+        let mut sender_mock = MockMtbFileSender::new();
+
+        sender_mock
+            .expect_send()
+            .withf(|mtb| mtb.patient.id.eq("fae56ea7-24a7-4556-82fb-2b5dde71bb4d"))
+            .return_once(move |_| Ok(String::new()));
+
+        let router = routes(Arc::new(sender_mock) as DynMtbFileSender);
+        let body = Body::from(include_str!("../test-files/mv64e-mtb-fake-patient.json"));
+
+        let response = router
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/mtb/etl/patient-record")
+                    .header(CONTENT_TYPE, "application/vnd.dnpm.v2.mtb+json")
+                    .body(body)
+                    .expect("request built"),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::ACCEPTED);
+    }
+
+    #[tokio::test]
+    #[allow(clippy::expect_used)]
+    async fn should_not_accept_xml_request() {
+        let mut sender_mock = MockMtbFileSender::new();
+
+        sender_mock
+            .expect_send()
+            .withf(|mtb| mtb.patient.id.eq("fae56ea7-24a7-4556-82fb-2b5dde71bb4d"))
+            .return_once(move |_| Ok(String::new()));
+
+        let router = routes(Arc::new(sender_mock) as DynMtbFileSender);
+        let body = Body::from("<test>Das ist ein Test</test>");
+
+        let response = router
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/mtb/etl/patient-record")
+                    .header(CONTENT_TYPE, "application/xml")
+                    .body(body)
+                    .expect("request built"),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNSUPPORTED_MEDIA_TYPE);
     }
 }

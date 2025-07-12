@@ -68,9 +68,7 @@ async fn main() -> Result<(), ()> {
         &CONFIG.bootstrap_server,
     )?);
 
-    let routes = routes(sender)
-        .layer(from_fn(check_content_type_header))
-        .layer(from_fn(check_basic_auth));
+    let routes = routes(sender).layer(from_fn(check_basic_auth));
 
     #[cfg(debug_assertions)]
     let routes = routes.layer(TraceLayer::new_for_http());
@@ -94,7 +92,11 @@ async fn check_content_type_header(request: Request<Body>, next: Next) -> Respon
         .get(CONTENT_TYPE)
         .map(HeaderValue::as_bytes)
     {
-        Some(b"application/json" | b"application/json; charset=utf-8") => next.run(request).await,
+        Some(
+            b"application/json"
+            | b"application/json; charset=utf-8"
+            | b"application/vnd.dnpm.v2.mtb+json",
+        ) => next.run(request).await,
         _ => UnsupportedContentType.into_response(),
     }
 }

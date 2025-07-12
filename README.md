@@ -93,10 +93,10 @@ date: Sat, 09 Mar 2024 11:16:44 GMT
 
 Resultierender Kafka-Record:
 
-* **Key**: `{"pid":"P1"}`
+* **Key**: `{ "pid" : "P1" }`
 * **Headers**:
     * `requestId`: `1804d5c1-af3d-4f75-81a0-d9ca7c9739ef`
-* **Value**: Inhalt des HTTP-Request-Bodies/Test-Files
+* **Value**: `{ "patient": { "id": "fae56ea7-24a7-4556-82fb-2b5dde71bb4d", .... } }`
 
 #### Löschen von Patienten
 
@@ -120,10 +120,10 @@ date: Sat, 09 Mar 2024 11:24:35 GMT
 
 Resultierender Kafka-Record:
 
-* **Key**: `{"pid":"P1"}`
+* **Key**: `{ "pid" : "P1" }`
 * **Headers**:
     * `requestId`: `8473fa67-8b18-4e8f-aa89-874f74fcc672`
-* **Value**: JSON-String mit Patienten-ID `P1` und ohne weitere Angaben.
+* **Value**: JSON-String mit Patienten-ID `P1` und ohne weitere Angaben: * **Value**: `{ "patient": { "id": "P1", .... } }`
 
 Es werden keine weiteren patientenbezogenen Daten übermittelt.
 
