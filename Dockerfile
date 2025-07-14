@@ -20,4 +20,4 @@ LABEL org.opencontainers.image.description="DNPM MTB REST Proxy für Kafka"
 COPY --from=back-stage /build/target/release/dnpm-kafka-rest-proxy .
 USER 65532
 EXPOSE 3000
-CMD ["./bwhc-kafka-rest-proxy"]
+CMD ["./dnpm-kafka-rest-proxy"]
