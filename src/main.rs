@@ -1,5 +1,5 @@
 use axum::body::Body;
-use axum::http::header::{AUTHORIZATION, CONTENT_TYPE};
+use axum::http::header::{AUTHORIZATION, CONTENT_TYPE, WWW_AUTHENTICATE};
 use axum::http::{HeaderValue, Request, StatusCode};
 use axum::middleware::{from_fn, Next};
 use axum::response::{IntoResponse, Response};
@@ -46,7 +46,9 @@ impl IntoResponse for AppResponse<'_> {
                 Accepted(request_id) => Response::builder()
                     .status(StatusCode::ACCEPTED)
                     .header("X-Request-Id", request_id),
-                Unauthorized => Response::builder().status(StatusCode::UNAUTHORIZED),
+                Unauthorized => Response::builder()
+                    .status(StatusCode::UNAUTHORIZED)
+                    .header(WWW_AUTHENTICATE, "Basic realm=\"DNPM Kafka Rest Proxy Realm\""),
                 _ => Response::builder().status(StatusCode::INTERNAL_SERVER_ERROR),
             }
                 .body(Body::empty()).expect("response built"),
@@ -117,11 +119,12 @@ async fn check_basic_auth(request: Request<Body>, next: Next) -> Response {
 
 #[cfg(test)]
 mod tests {
+    use axum::http::header::WWW_AUTHENTICATE;
     use axum::http::StatusCode;
     use axum::response::IntoResponse;
     use uuid::Uuid;
 
-    use crate::AppResponse::{Accepted, InternalServerError};
+    use crate::AppResponse::{Accepted, InternalServerError, Unauthorized};
 
     #[test]
     fn should_return_success_response() {
@@ -135,5 +138,12 @@ mod tests {
         let response = InternalServerError.into_response();
         assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
         assert!(!response.headers().contains_key("x-request-id"));
+    }
+
+    #[test]
+    fn should_return_unauthorized_response() {
+        let response = Unauthorized.into_response();
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+        assert!(response.headers().contains_key(WWW_AUTHENTICATE));
     }
 }
