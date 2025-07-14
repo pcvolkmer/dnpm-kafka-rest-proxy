@@ -42,8 +42,8 @@ Umgebungsvariable `APP_SECURITY_TOKEN`.
 
 Die folgenden Endpunkte sind verfügbar:
 
-* **POST** `/mtbfile`: Senden eines MTB-Files
-* **DELETE** `/mtbfile/:patient_id`: Löschen von Informationen zu dem Patienten
+* **POST** `/mtb/etl/patient-record`: Senden eines MTB-Files
+* **DELETE** `/mtb/etl/patient-record/:patient_id`: Löschen von Informationen zu dem Patienten
 
 Übermittelte MTB-Files müssen erforderliche Bestandteile beinhalten, ansonsten wird die Anfrage zurückgewiesen.
 

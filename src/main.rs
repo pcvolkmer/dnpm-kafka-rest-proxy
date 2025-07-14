@@ -8,7 +8,6 @@ use rdkafka::producer::FutureProducer;
 use rdkafka::ClientConfig;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, LazyLock};
-#[cfg(debug_assertions)]
 use tower_http::trace::TraceLayer;
 
 use crate::cli::Cli;
@@ -67,6 +66,13 @@ async fn main() -> Result<(), ()> {
             .init();
     }
 
+    #[cfg(not(debug_assertions))]
+    {
+        tracing_subscriber::fmt()
+            .with_max_level(tracing::Level::INFO)
+            .init();
+    }
+
     let producer = ClientConfig::new()
         .set("bootstrap.servers", &CONFIG.bootstrap_server)
         .set("message.timeout.ms", "5000")
@@ -75,10 +81,9 @@ async fn main() -> Result<(), ()> {
 
     let sender = Arc::new(DefaultMtbFileSender::new(&CONFIG.topic, producer));
 
-    let routes = routes(sender).layer(from_fn(check_basic_auth));
-
-    #[cfg(debug_assertions)]
-    let routes = routes.layer(TraceLayer::new_for_http());
+    let routes = routes(sender)
+        .layer(from_fn(check_basic_auth))
+        .layer(TraceLayer::new_for_http());
 
     match tokio::net::TcpListener::bind(&CONFIG.listen).await {
         Ok(listener) => {
@@ -114,6 +119,7 @@ async fn check_basic_auth(request: Request<Body>, next: Next) -> Response {
             return next.run(request).await;
         }
     }
+    log::warn!("Invalid authentication used");
     Unauthorized.into_response()
 }
 
