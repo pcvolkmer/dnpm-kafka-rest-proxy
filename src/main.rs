@@ -1,17 +1,16 @@
 use axum::body::Body;
-use axum::http::header::{AUTHORIZATION, CONTENT_TYPE, WWW_AUTHENTICATE};
-use axum::http::{HeaderValue, Request, StatusCode};
-use axum::middleware::{from_fn, Next};
+use axum::http::header::WWW_AUTHENTICATE;
+use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use clap::Parser;
 use rdkafka::producer::FutureProducer;
 use rdkafka::ClientConfig;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, LazyLock};
-use tower_http::trace::TraceLayer;
+
+#[cfg(not(test))]
+use clap::Parser;
 
 use crate::cli::Cli;
-use crate::routes::routes;
 use crate::sender::DefaultMtbFileSender;
 use crate::AppResponse::{Accepted, Unauthorized, UnsupportedContentType};
 
@@ -55,6 +54,7 @@ impl IntoResponse for AppResponse<'_> {
     }
 }
 
+#[cfg(not(test))]
 static CONFIG: LazyLock<Cli> = LazyLock::new(Cli::parse);
 
 #[tokio::main]
@@ -81,14 +81,10 @@ async fn main() -> Result<(), ()> {
 
     let sender = Arc::new(DefaultMtbFileSender::new(&CONFIG.topic, producer));
 
-    let routes = routes(sender)
-        .layer(from_fn(check_basic_auth))
-        .layer(TraceLayer::new_for_http());
-
     match tokio::net::TcpListener::bind(&CONFIG.listen).await {
         Ok(listener) => {
             log::info!("Starting application listening on '{}'", CONFIG.listen);
-            if let Err(err) = axum::serve(listener, routes).await {
+            if let Err(err) = axum::serve(listener, routes::routes(sender)).await {
                 log::error!("Error starting application: {err}");
             }
         }
@@ -98,30 +94,15 @@ async fn main() -> Result<(), ()> {
     Ok(())
 }
 
-async fn check_content_type_header(request: Request<Body>, next: Next) -> Response {
-    match request
-        .headers()
-        .get(CONTENT_TYPE)
-        .map(HeaderValue::as_bytes)
-    {
-        Some(
-            b"application/json"
-            | b"application/json; charset=utf-8"
-            | b"application/vnd.dnpm.v2.mtb+json",
-        ) => next.run(request).await,
-        _ => UnsupportedContentType.into_response(),
-    }
-}
-
-async fn check_basic_auth(request: Request<Body>, next: Next) -> Response {
-    if let Some(Ok(auth_header)) = request.headers().get(AUTHORIZATION).map(|x| x.to_str()) {
-        if auth::check_basic_auth(auth_header, &CONFIG.token) {
-            return next.run(request).await;
-        }
-    }
-    log::warn!("Invalid authentication used");
-    Unauthorized.into_response()
-}
+// Test Configuration
+#[cfg(test)]
+static CONFIG: LazyLock<Cli> = LazyLock::new(|| Cli {
+    bootstrap_server: "localhost:9094".to_string(),
+    topic: "test-topic".to_string(),
+    // Basic dG9rZW46dmVyeS1zZWNyZXQ=
+    token: "$2y$05$LIIFF4Rbi3iRVA4UIqxzPeTJ0NOn/cV2hDnSKFftAMzbEZRa42xSG".to_string(),
+    listen: "0.0.0.0:3000".to_string(),
+});
 
 #[cfg(test)]
 mod tests {

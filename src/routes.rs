@@ -1,12 +1,16 @@
-use crate::check_content_type_header;
 use crate::sender::DynMtbFileSender;
-use crate::AppResponse::{Accepted, InternalServerError};
+use crate::AppResponse::{Accepted, InternalServerError, Unauthorized, UnsupportedContentType};
+use crate::{auth, CONFIG};
+use axum::body::Body;
 use axum::extract::Path;
-use axum::middleware::from_fn;
+use axum::http::header::{AUTHORIZATION, CONTENT_TYPE};
+use axum::http::{HeaderValue, Request};
+use axum::middleware::{from_fn, Next};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{delete, post};
 use axum::{Extension, Json, Router};
 use mv64e_mtb_dto::Mtb;
+use tower_http::trace::TraceLayer;
 
 pub async fn handle_delete(
     Path(patient_id): Path<String>,
@@ -38,6 +42,33 @@ pub fn routes(sender: DynMtbFileSender) -> Router {
         )
         .layer(Extension(sender))
         .layer(from_fn(check_content_type_header))
+        .layer(from_fn(check_basic_auth))
+        .layer(TraceLayer::new_for_http())
+}
+
+async fn check_basic_auth(request: Request<Body>, next: Next) -> Response {
+    if let Some(Ok(auth_header)) = request.headers().get(AUTHORIZATION).map(|x| x.to_str()) {
+        if auth::check_basic_auth(auth_header, &CONFIG.token) {
+            return next.run(request).await;
+        }
+    }
+    log::warn!("Invalid authentication used");
+    Unauthorized.into_response()
+}
+
+async fn check_content_type_header(request: Request<Body>, next: Next) -> Response {
+    match request
+        .headers()
+        .get(CONTENT_TYPE)
+        .map(HeaderValue::as_bytes)
+    {
+        Some(
+            b"application/json"
+            | b"application/json; charset=utf-8"
+            | b"application/vnd.dnpm.v2.mtb+json",
+        ) => next.run(request).await,
+        _ => UnsupportedContentType.into_response(),
+    }
 }
 
 #[cfg(test)]
@@ -68,6 +99,7 @@ mod tests {
                 Request::builder()
                     .method(Method::POST)
                     .uri("/mtb/etl/patient-record")
+                    .header(AUTHORIZATION, "Basic dG9rZW46dmVyeS1zZWNyZXQ=")
                     .header(CONTENT_TYPE, "application/json")
                     .body(body)
                     .expect("request built"),
@@ -98,6 +130,7 @@ mod tests {
                 Request::builder()
                     .method(Method::DELETE)
                     .uri("/mtb/etl/patient-record/fae56ea7-24a7-4556-82fb-2b5dde71bb4d")
+                    .header(AUTHORIZATION, "Basic dG9rZW46dmVyeS1zZWNyZXQ=")
                     .header(CONTENT_TYPE, "application/json")
                     .body(Body::empty())
                     .expect("request built"),
@@ -126,6 +159,7 @@ mod tests {
                 Request::builder()
                     .method(Method::POST)
                     .uri("/mtb/etl/patient-record")
+                    .header(AUTHORIZATION, "Basic dG9rZW46dmVyeS1zZWNyZXQ=")
                     .header(CONTENT_TYPE, "application/vnd.dnpm.v2.mtb+json")
                     .body(body)
                     .expect("request built"),
@@ -154,6 +188,7 @@ mod tests {
                 Request::builder()
                     .method(Method::POST)
                     .uri("/mtb/etl/patient-record")
+                    .header(AUTHORIZATION, "Basic dG9rZW46dmVyeS1zZWNyZXQ=")
                     .header(CONTENT_TYPE, "application/xml")
                     .body(body)
                     .expect("request built"),
@@ -162,5 +197,92 @@ mod tests {
             .unwrap();
 
         assert_eq!(response.status(), StatusCode::UNSUPPORTED_MEDIA_TYPE);
+    }
+
+    #[tokio::test]
+    #[allow(clippy::expect_used)]
+    async fn should_respond_bad_request_if_not_parsable() {
+        let mut sender_mock = MockMtbFileSender::new();
+
+        sender_mock
+            .expect_send()
+            .withf(|mtb| mtb.patient.id.eq("fae56ea7-24a7-4556-82fb-2b5dde71bb4d"))
+            .return_once(move |_| Ok(String::new()));
+
+        let router = routes(Arc::new(sender_mock) as DynMtbFileSender);
+        let body = Body::from("Das ist kein JSON!");
+
+        let response = router
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/mtb/etl/patient-record")
+                    .header(AUTHORIZATION, "Basic dG9rZW46dmVyeS1zZWNyZXQ=")
+                    .header(CONTENT_TYPE, "application/json")
+                    .body(body)
+                    .expect("request built"),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    #[allow(clippy::expect_used)]
+    async fn should_respond_bad_request_if_not_processable() {
+        let mut sender_mock = MockMtbFileSender::new();
+
+        sender_mock
+            .expect_send()
+            .withf(|mtb| mtb.patient.id.eq("fae56ea7-24a7-4556-82fb-2b5dde71bb4d"))
+            .return_once(move |_| Ok(String::new()));
+
+        let router = routes(Arc::new(sender_mock) as DynMtbFileSender);
+        let body = Body::from("{}");
+
+        let response = router
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/mtb/etl/patient-record")
+                    .header(AUTHORIZATION, "Basic dG9rZW46dmVyeS1zZWNyZXQ=")
+                    .header(CONTENT_TYPE, "application/json")
+                    .body(body)
+                    .expect("request built"),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+    }
+
+    #[tokio::test]
+    #[allow(clippy::expect_used)]
+    async fn should_check_authorization_first() {
+        let mut sender_mock = MockMtbFileSender::new();
+
+        sender_mock
+            .expect_send()
+            .withf(|mtb| mtb.patient.id.eq("fae56ea7-24a7-4556-82fb-2b5dde71bb4d"))
+            .return_once(move |_| Ok(String::new()));
+
+        let router = routes(Arc::new(sender_mock) as DynMtbFileSender);
+        let body = Body::from("<test>Das ist ein Test</test>");
+
+        let response = router
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/mtb/etl/patient-record")
+                    // No Auth header!
+                    .header(CONTENT_TYPE, "application/xml")
+                    .body(body)
+                    .expect("request built"),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     }
 }
