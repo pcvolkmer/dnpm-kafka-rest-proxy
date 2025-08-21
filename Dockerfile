@@ -1,7 +1,7 @@
 FROM rust:alpine AS back-stage
 
 RUN apk update
-RUN apk add cmake make musl-dev g++
+RUN apk add cmake make musl-dev g++ perl
 
 WORKDIR /build
 COPY Cargo.toml ./

@@ -25,6 +25,12 @@ Options:
           bcrypt hashed Security Token [env: APP_SECURITY_TOKEN=]
       --listen <LISTEN>
           Address and port for HTTP requests [env: APP_LISTEN=] [default: [::]:3000]
+      --ssl-ca-file <SSL_CA_FILE>
+          CA file for SSL connection to Kafka [env: APP_SSL_CA_FILE=]
+      --ssl-cert-file <SSL_CERT_FILE>
+          Certificate file for SSL connection to Kafka [env: APP_SSL_CERT_FILE=]
+      --ssl-key-file <SSL_KEY_FILE>
+          Key file for SSL connection to Kafka [env: APP_SSL_KEY_FILE=]
 ```
 
 Die Anwendung lässt sich auch mit Umgebungsvariablen konfigurieren.
@@ -34,6 +40,12 @@ Die Anwendung lässt sich auch mit Umgebungsvariablen konfigurieren.
 * `APP_SECURITY_TOKEN`: Verpflichtende Angabe es Tokens als *bcrypt*-Hash
 * `APP_LISTEN`: Adresse und Port für eingehende HTTP-Requests. Standardwert: `[::]:3000` - Port `3000` auf allen
   Adressen (IPv4 und IPv6)
+
+Optionale Umgebungsvariablen - wenn angegeben wird eine SSL-Verbindung zu Kafka aufgebaut.
+
+* `SSL_CA_FILE`: CA für SSL-Verbindungen
+* `SSL_CA_FILE`: SSL Certificate Datei
+* `SSL_CA_FILE`: SSL Key Datei
 
 Die Angabe eines Tokens ist verpflichtend und kann entweder über den Parameter `--token` erfolgen, oder über die
 Umgebungsvariable `APP_SECURITY_TOKEN`.

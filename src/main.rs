@@ -73,11 +73,34 @@ async fn main() -> Result<(), ()> {
             .init();
     }
 
-    let producer = ClientConfig::new()
-        .set("bootstrap.servers", &CONFIG.bootstrap_server)
-        .set("message.timeout.ms", "5000")
-        .create::<FutureProducer>()
-        .map_err(|_| ())?;
+    let producer = if CONFIG.ssl_cert_file.is_some() || CONFIG.ssl_key_file.is_some() {
+        // Use SSL
+        ClientConfig::new()
+            .set("bootstrap.servers", &CONFIG.bootstrap_server)
+            .set("message.timeout.ms", "5000")
+            .set("security.protocol", "ssl")
+            .set(
+                "ssl.ca.location",
+                CONFIG.ssl_ca_file.clone().unwrap_or_default(),
+            )
+            .set(
+                "ssl.certificate.location",
+                CONFIG.ssl_cert_file.clone().unwrap_or_default(),
+            )
+            .set(
+                "ssl.key.location",
+                CONFIG.ssl_key_file.clone().unwrap_or_default(),
+            )
+            .create::<FutureProducer>()
+            .map_err(|_| ())?
+    } else {
+        // Plain
+        ClientConfig::new()
+            .set("bootstrap.servers", &CONFIG.bootstrap_server)
+            .set("message.timeout.ms", "5000")
+            .create::<FutureProducer>()
+            .map_err(|_| ())?
+    };
 
     let sender = Arc::new(DefaultMtbFileSender::new(&CONFIG.topic, producer));
 
@@ -102,6 +125,9 @@ static CONFIG: LazyLock<Cli> = LazyLock::new(|| Cli {
     // Basic dG9rZW46dmVyeS1zZWNyZXQ=
     token: "$2y$05$LIIFF4Rbi3iRVA4UIqxzPeTJ0NOn/cV2hDnSKFftAMzbEZRa42xSG".to_string(),
     listen: "0.0.0.0:3000".to_string(),
+    ssl_ca_file: None,
+    ssl_cert_file: None,
+    ssl_key_file: None,
 });
 
 #[cfg(test)]
