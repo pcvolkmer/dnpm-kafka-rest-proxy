@@ -36,20 +36,26 @@ pub struct Cli {
     pub listen: String,
     #[arg(
         long,
-        env = "APP_SSL_CA_FILE",
+        env = "APP_KAFKA_SSL_CA_FILE",
         help = "CA file for SSL connection to Kafka"
     )]
     pub ssl_ca_file: Option<String>,
     #[arg(
         long,
-        env = "APP_SSL_CERT_FILE",
+        env = "APP_KAFKA_SSL_CERT_FILE",
         help = "Certificate file for SSL connection to Kafka"
     )]
     pub ssl_cert_file: Option<String>,
     #[arg(
         long,
-        env = "APP_SSL_KEY_FILE",
+        env = "APP_KAFKA_SSL_KEY_FILE",
         help = "Key file for SSL connection to Kafka"
     )]
     pub ssl_key_file: Option<String>,
+    #[arg(
+        long,
+        env = "APP_KAFKA_SSL_KEY_PASSWORD",
+        help = "The SSL key password"
+    )]
+    pub ssl_key_password: Option<String>,
 }

@@ -73,12 +73,16 @@ async fn main() -> Result<(), ()> {
             .init();
     }
 
+    let mut client_config = ClientConfig::new();
+
+    client_config
+        .set("bootstrap.servers", &CONFIG.bootstrap_server)
+        .set("message.timeout.ms", "5000")
+        .set("security.protocol", "ssl");
+
     let producer = if CONFIG.ssl_cert_file.is_some() || CONFIG.ssl_key_file.is_some() {
         // Use SSL
-        ClientConfig::new()
-            .set("bootstrap.servers", &CONFIG.bootstrap_server)
-            .set("message.timeout.ms", "5000")
-            .set("security.protocol", "ssl")
+        client_config
             .set(
                 "ssl.ca.location",
                 CONFIG.ssl_ca_file.clone().unwrap_or_default(),
@@ -90,16 +94,14 @@ async fn main() -> Result<(), ()> {
             .set(
                 "ssl.key.location",
                 CONFIG.ssl_key_file.clone().unwrap_or_default(),
-            )
-            .create::<FutureProducer>()
-            .map_err(|_| ())?
+            );
+        if let Some(ssl_key_password) = &CONFIG.ssl_key_password {
+            client_config.set("ssl.key.password", ssl_key_password);
+        }
+        client_config.create::<FutureProducer>().map_err(|_| ())?
     } else {
         // Plain
-        ClientConfig::new()
-            .set("bootstrap.servers", &CONFIG.bootstrap_server)
-            .set("message.timeout.ms", "5000")
-            .create::<FutureProducer>()
-            .map_err(|_| ())?
+        client_config.create::<FutureProducer>().map_err(|_| ())?
     };
 
     let sender = Arc::new(DefaultMtbFileSender::new(&CONFIG.topic, producer));
@@ -128,6 +130,7 @@ static CONFIG: LazyLock<Cli> = LazyLock::new(|| Cli {
     ssl_ca_file: None,
     ssl_cert_file: None,
     ssl_key_file: None,
+    ssl_key_password: None,
 });
 
 #[cfg(test)]

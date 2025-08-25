@@ -43,9 +43,10 @@ Die Anwendung lässt sich auch mit Umgebungsvariablen konfigurieren.
 
 Optionale Umgebungsvariablen - wenn angegeben wird eine SSL-Verbindung zu Kafka aufgebaut.
 
-* `APP_SSL_CA_FILE`: CA für SSL-Verbindungen
-* `APP_SSL_CA_FILE`: SSL Certificate Datei
-* `APP_SSL_CA_FILE`: SSL Key Datei
+* `APP_KAFKA_SSL_CA_FILE`: CA für SSL-Verbindungen
+* `APP_KAFKA_SSL_CERT_FILE`: SSL Certificate Datei
+* `APP_KAFKA_SSL_KEY_FILE`: SSL Key Datei
+* `APP_KAFKA_SSL_KEY_PASSWORD`: SSL KEY Passwort (wenn benötigt)
 
 Die Angabe eines Tokens ist verpflichtend und kann entweder über den Parameter `--token` erfolgen, oder über die
 Umgebungsvariable `APP_SECURITY_TOKEN`.
