@@ -144,8 +144,8 @@ Resultierender Kafka-Record:
 
 Es werden keine weiteren patientenbezogenen Daten übermittelt.
 
-In optionaler Verbindung mit [Key-Based-Retention](https://github.com/CCC-MF/etl-processor#key-based-retention) wird
+In optionaler Verbindung mit [Key-Based-Retention](https://github.com/pcvolkmer/mv64e-etl-processor#key-based-retention) wird
 lediglich der letzte und aktuelle Record, hier die Information ohne Consent-Zustimmung, in Kafka vorgehalten.
 
-Trifft dieser Kafka-Record im [ETL-Prozessor](https://github.com/CCC-MF/etl-processor) ein, so wird dort ebenfalls eine
+Trifft dieser Kafka-Record im [ETL-Prozessor](https://github.com/pcvolkmer/mv64e-etl-processor) ein, so wird dort ebenfalls eine
 Löschanfrage ausgelöst, da keine Modellvorhaben Metadaten enthalten sind.
