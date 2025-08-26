@@ -1,20 +1,22 @@
-# DNPM Kafka Rest Proxy
+# MV64e REST-to-Kafka Gateway
 
-DNPM Datenmodell 2.1 REST Proxy für Kafka
+Diese Anwendung versendet MV64e HTTP requests mit DNPM V2.1 Payload an einen Kafka Broker
 
 ### Einordnung innerhalb einer DNPM-ETL-Strecke
 
 Diese Anwendung erlaubt das Weiterleiten von REST Anfragen mit einem Request-Body und Inhalt im DNPM-Datenmodell 2.1
 sowie `Content-Type` von `application/json` bzw `application/vnd.dnpm.v2.mtb+json` an einen Apache Kafka Cluster.
 
-Verwendung im Zusammenspiel mit https://github.com/pcvolkmer/etl-processor
+Verwendung im Zusammenspiel mit https://github.com/pcvolkmer/mv64e-etl-processor
+
+![Modell DNPM-ETL-Strecke](docs/etl.png)
 
 ## Konfiguration
 
 Beim Start der Anwendung können Parameter angegeben werden.
 
 ```
-Usage: dnpm-kafka-rest-proxy [OPTIONS] --token <TOKEN>
+Usage: mv64e-rest-to-kafka-gateway [OPTIONS] --token <TOKEN>
 
 Options:
       --bootstrap-server <BOOTSTRAP_SERVER>

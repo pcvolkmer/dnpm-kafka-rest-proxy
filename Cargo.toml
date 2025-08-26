@@ -1,10 +1,10 @@
 [package]
-name = "dnpm-kafka-rest-proxy"
+name = "mv64e-rest-to-kafka-gateway"
 version = "0.1.0"
 edition = "2024"
 authors = ["Paul-Christian Volkmer <code@pcvolkmer.de>"]
 license = "AGPL-3.0"
-description = "DNPM MTB REST Proxy für Kafka"
+description = "Send MV64e HTTP requests with DNPM V2.1 payload to a Kafka broker"
 
 # Dependencies
 
@@ -14,7 +14,7 @@ log = "0.4"
 axum = { version = "0.8", features = ["tracing"] }
 tracing = "0.1"
 tracing-subscriber = "0.3"
-tokio = { version = "1.46", features = ["rt-multi-thread"] }
+tokio = { version = "1.47", features = ["rt-multi-thread"] }
 tower-http = { version = "0.6", features = ["trace"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

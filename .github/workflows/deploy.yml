@@ -22,5 +22,5 @@ jobs:
 
       - name: Execute image build and push
         run: |
-          docker build -t ghcr.io/pcvolkmer/dnpm-kafka-rest-proxy .
-          docker push ghcr.io/pcvolkmer/dnpm-kafka-rest-proxy
+          docker build -t ghcr.io/pcvolkmer/mv64e-rest-to-kafka-gateway .
+          docker push ghcr.io/pcvolkmer/mv64e-rest-to-kafka-gateway
