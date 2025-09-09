@@ -4,21 +4,18 @@ use base64::Engine;
 #[allow(clippy::module_name_repetitions)]
 pub fn check_basic_auth(auth_header: &str, expected_token: &str) -> bool {
     let split = auth_header.split(' ').collect::<Vec<_>>();
-    if split.len() == 2 && split.first().map(|first| first.to_lowercase()) == Some("basic".into()) {
-        if let Ok(auth) = BASE64_STANDARD.decode(split.last().unwrap_or(&"")) {
-            if let Ok(auth) = String::from_utf8(auth) {
-                let split = auth.split(':').collect::<Vec<_>>();
-                if split.len() == 2 && split.first() == Some(&"token") {
-                    match split.last() {
-                        None => {}
-                        Some(&token) => {
-                            if let Ok(true) = bcrypt::verify(token, expected_token) {
-                                return true;
-                            }
-                        }
-                    }
-                }
-            }
+    if split.len() == 2
+        && split.first().map(|first| first.to_lowercase()) == Some("basic".into())
+        && let Ok(auth) = BASE64_STANDARD.decode(split.last().unwrap_or(&""))
+        && let Ok(auth) = String::from_utf8(auth)
+    {
+        let split = auth.split(':').collect::<Vec<_>>();
+        if split.len() == 2
+            && split.first() == Some(&"token")
+            && let Some(&token) = split.last()
+            && let Ok(true) = bcrypt::verify(token, expected_token)
+        {
+            return true;
         }
     }
 

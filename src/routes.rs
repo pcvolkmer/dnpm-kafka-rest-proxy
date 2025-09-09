@@ -47,10 +47,10 @@ pub fn routes(sender: DynMtbFileSender) -> Router {
 }
 
 async fn check_basic_auth(request: Request<Body>, next: Next) -> Response {
-    if let Some(Ok(auth_header)) = request.headers().get(AUTHORIZATION).map(|x| x.to_str()) {
-        if auth::check_basic_auth(auth_header, &CONFIG.token) {
-            return next.run(request).await;
-        }
+    if let Some(Ok(auth_header)) = request.headers().get(AUTHORIZATION).map(|x| x.to_str())
+        && auth::check_basic_auth(auth_header, &CONFIG.token)
+    {
+        return next.run(request).await;
     }
     log::warn!("Invalid authentication used");
     Unauthorized.into_response()
