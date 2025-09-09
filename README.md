@@ -41,7 +41,7 @@ Die Anwendung lässt sich auch mit Umgebungsvariablen konfigurieren.
 
 * `LISTEN`: Adresse und Port für eingehende HTTP-Requests. Standardwert: `[::]:3000` - Port `3000` auf allen
   Adressen (IPv4 und IPv6)
-* `SECURITY_TOKEN`: Verpflichtende Angabe es Tokens als *bcrypt*-Hash
+* `SECURITY_TOKEN`: Verpflichtende Angabe des Benutzernamens und *bcrypt*-Hash des Passworts
 * `KAFKA_BOOTSTRAP_SERVERS`: Zu verwendende Kafka-Bootstrap-Server als kommagetrennte Liste
 * `KAFKA_TOPIC`: Zu verwendendes Topic zum Warten auf neue Anfragen. Standardwert: `etl-processor_input`
 
@@ -72,17 +72,23 @@ wird.
 
 ### Authentifizierung
 
-Requests müssen einen HTTP-Header `authorization` für HTTP-Basic enthalten. Hier ist es erforderlich, dass der
-Benutzername `token` gewählt wird.
-
-Es ist hierzu erforderlich, die erforderliche Umgebungsvariable `SECURITY_TOKEN` zu setzen. Dies kann z.B. mit
-*htpasswd* erzeugt werden:
+Requests müssen einen HTTP-Header `authorization` für HTTP-Basic enthalten.
+Dazu muss die erforderliche Umgebungsvariable `SECURITY_TOKEN` gesetzt sein.
+Der erforderliche Wert kann z.B. mit *htpasswd* erzeugt werden - `token` ist hier der gewählte Benutzername - es kann
+jedoch ein beliebiger Benutzername verwendet werden:
 
 ```
 htpasswd -Bn token
 ```
 
-Der hintere Teil (hinter `token:`) entspricht dem *bcrypt*-Hash des Tokens.
+Der vordere Teil der Ausgabe ist der Benutzername, der hintere Teil (im Beispiel hinter `token:`) entspricht dem
+*bcrypt*-Hash des Tokens, welches als HTTP-Basic-Passwort erwartet wird.
+
+Ein Beispiel für die Angabe `SECURITY_TOKEN` ist für den Benutzernamen `token` und das Passwort `very-secret`:
+`token:$2y$05$LIIFF4Rbi3iRVA4UIqxzPeTJ0NOn/cV2hDnSKFftAMzbEZRa42xSG`
+
+Zur Kompatibilität mit älteren Versionen kann (nur) bei Wahl des Benutzernamens `token` der Teil `token:`
+bei der Angabe entfallen: `$2y$05$LIIFF4Rbi3iRVA4UIqxzPeTJ0NOn/cV2hDnSKFftAMzbEZRa42xSG`
 
 ### Beispiele für HTTP-Requests und resultierende Kafka-Records
 
@@ -146,8 +152,10 @@ Resultierender Kafka-Record:
 
 Es werden keine weiteren patientenbezogenen Daten übermittelt.
 
-In optionaler Verbindung mit [Key-Based-Retention](https://github.com/pcvolkmer/mv64e-etl-processor#key-based-retention) wird
+In optionaler Verbindung mit [Key-Based-Retention](https://github.com/pcvolkmer/mv64e-etl-processor#key-based-retention)
+wird
 lediglich der letzte und aktuelle Record, hier die Information ohne Consent-Zustimmung, in Kafka vorgehalten.
 
-Trifft dieser Kafka-Record im [ETL-Prozessor](https://github.com/pcvolkmer/mv64e-etl-processor) ein, so wird dort ebenfalls eine
+Trifft dieser Kafka-Record im [ETL-Prozessor](https://github.com/pcvolkmer/mv64e-etl-processor) ein, so wird dort
+ebenfalls eine
 Löschanfrage ausgelöst, da keine Modellvorhaben Metadaten enthalten sind.

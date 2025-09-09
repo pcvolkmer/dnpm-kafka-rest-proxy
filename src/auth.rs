@@ -9,9 +9,17 @@ pub fn check_basic_auth(auth_header: &str, expected_token: &str) -> bool {
         && let Ok(auth) = BASE64_STANDARD.decode(split.last().unwrap_or(&""))
         && let Ok(auth) = String::from_utf8(auth)
     {
+        let split_token = expected_token.split(':').collect::<Vec<_>>();
+        let expected_username = if split_token.len() == 2 {
+            split_token.first().unwrap_or(&"token")
+        } else {
+            &"token"
+        };
+        let expected_token = split_token.get(1).unwrap_or(&expected_token);
+
         let split = auth.split(':').collect::<Vec<_>>();
         if split.len() == 2
-            && split.first() == Some(&"token")
+            && split.first() == Some(expected_username)
             && let Some(&token) = split.last()
             && let Ok(true) = bcrypt::verify(token, expected_token)
         {
@@ -48,7 +56,7 @@ mod tests {
     }
 
     #[test]
-    fn should_reject_basic_auth_without_wrong_token() {
+    fn should_reject_basic_auth_without_valid_token() {
         assert!(!check_basic_auth(
             "Basic dG9rZW46MTIzNDU2Nzg5",
             EXPECTED_TOKEN
@@ -56,10 +64,26 @@ mod tests {
     }
 
     #[test]
-    fn should_accept_basic_auth_without_correct_token() {
+    fn should_accept_basic_auth_with_valid_token() {
         assert!(check_basic_auth(
             "Basic dG9rZW46dmVyeS1zZWNyZXQ=",
             EXPECTED_TOKEN
+        ));
+    }
+
+    #[test]
+    fn should_accept_basic_auth_with_custom_username() {
+        assert!(check_basic_auth(
+            "Basic Y3VzdG9tdXNlcjp2ZXJ5LXNlY3JldA==",
+            &format!("customuser:{EXPECTED_TOKEN}")
+        ));
+    }
+
+    #[test]
+    fn should_reject_basic_auth_without_correct_custom_username() {
+        assert!(!check_basic_auth(
+            "Basic Y3VzdG9tdXNlcjp2ZXJ5LXNlY3JldA==",
+            &format!("otheruser:{EXPECTED_TOKEN}")
         ));
     }
 }
