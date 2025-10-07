@@ -77,12 +77,12 @@ async fn main() -> Result<(), ()> {
 
     client_config
         .set("bootstrap.servers", &CONFIG.bootstrap_server)
-        .set("message.timeout.ms", "5000")
-        .set("security.protocol", "ssl");
+        .set("message.timeout.ms", "5000");
 
     let producer = if CONFIG.ssl_cert_file.is_some() || CONFIG.ssl_key_file.is_some() {
         // Use SSL
         client_config
+            .set("security.protocol", "ssl")
             .set(
                 "ssl.ca.location",
                 CONFIG.ssl_ca_file.clone().unwrap_or_default(),
