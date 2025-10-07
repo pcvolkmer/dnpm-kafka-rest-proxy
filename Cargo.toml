@@ -21,7 +21,7 @@ serde_json = "1.0"
 uuid = { version = "1.17", features = ["v4"] }
 base64 = "0.22"
 bcrypt = "0.17"
-rdkafka = { version = "0.38.0", features = ["cmake-build", "libz-static", "ssl-vendored"] }
+rdkafka = { version = "0.38", features = ["cmake-build", "libz-static", "ssl-vendored"] }
 async-trait = "0.1"
 # DTOs
 mv64e-mtb-dto = { git = "https://github.com/dnpm-dip/mv64e-mtb-dto-rs", branch = "master" }
@@ -30,6 +30,7 @@ mv64e-mtb-dto = { git = "https://github.com/dnpm-dip/mv64e-mtb-dto-rs", branch =
 tower = "0.5"
 http-body-util = "0.1"
 mockall = "0.13"
+rstest = "0.26"
 
 # Lints
 

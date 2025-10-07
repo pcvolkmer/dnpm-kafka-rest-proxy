@@ -1,18 +1,19 @@
 use axum::body::Body;
-use axum::http::header::WWW_AUTHENTICATE;
 use axum::http::StatusCode;
+use axum::http::header::WWW_AUTHENTICATE;
 use axum::response::{IntoResponse, Response};
-use rdkafka::producer::FutureProducer;
 use rdkafka::ClientConfig;
+use rdkafka::producer::FutureProducer;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, LazyLock};
 
 #[cfg(not(test))]
 use clap::Parser;
 
+use crate::AppResponse::{Accepted, Unauthorized, UnsupportedContentType};
+use crate::auth::is_valid_brypt_hash;
 use crate::cli::Cli;
 use crate::sender::DefaultMtbFileSender;
-use crate::AppResponse::{Accepted, Unauthorized, UnsupportedContentType};
 
 mod auth;
 mod cli;
@@ -71,6 +72,11 @@ async fn main() -> Result<(), ()> {
         tracing_subscriber::fmt()
             .with_max_level(tracing::Level::INFO)
             .init();
+    }
+
+    if !is_valid_brypt_hash(&CONFIG.token) {
+        log::error!("Error starting application: given token is not a valid BCrypt token");
+        return Err(());
     }
 
     let mut client_config = ClientConfig::new();
@@ -135,8 +141,8 @@ static CONFIG: LazyLock<Cli> = LazyLock::new(|| Cli {
 
 #[cfg(test)]
 mod tests {
-    use axum::http::header::WWW_AUTHENTICATE;
     use axum::http::StatusCode;
+    use axum::http::header::WWW_AUTHENTICATE;
     use axum::response::IntoResponse;
     use uuid::Uuid;
 
