@@ -79,6 +79,14 @@ async fn main() -> Result<(), ()> {
         return Err(());
     }
 
+    if let Err(err_msg) = start_service().await {
+        log::error!("Error starting service: {err_msg}");
+    }
+
+    Ok(())
+}
+
+async fn start_service() -> Result<(), String> {
     let mut client_config = ClientConfig::new();
 
     client_config
@@ -104,10 +112,10 @@ async fn main() -> Result<(), ()> {
         if let Some(ssl_key_password) = &CONFIG.ssl_key_password {
             client_config.set("ssl.key.password", ssl_key_password);
         }
-        client_config.create::<FutureProducer>().map_err(|_| ())?
+        client_config.create::<FutureProducer>().map_err(|err| err.to_string())?
     } else {
         // Plain
-        client_config.create::<FutureProducer>().map_err(|_| ())?
+        client_config.create::<FutureProducer>().map_err(|err| err.to_string())?
     };
 
     let sender = Arc::new(DefaultMtbFileSender::new(&CONFIG.topic, producer));
@@ -116,10 +124,10 @@ async fn main() -> Result<(), ()> {
         Ok(listener) => {
             log::info!("Starting application listening on '{}'", CONFIG.listen);
             if let Err(err) = axum::serve(listener, routes::routes(sender)).await {
-                log::error!("Error starting application: {err}");
+                return Err(err.to_string());
             }
         }
-        Err(err) => log::error!("Error listening on '{}': {}", CONFIG.listen, err),
+        Err(err) => return Err(format!("Cannot listening on '{}': {}", CONFIG.listen, err)),
     }
 
     Ok(())
